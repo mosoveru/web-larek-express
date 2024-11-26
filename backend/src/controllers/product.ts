@@ -5,6 +5,7 @@ export const getAllProducts = (_: Request, res: Response) => {
   Product.find({}).then((data) => {
     res.status(200).send({
       items: data,
+      total: data.length,
     });
   });
 };
@@ -16,7 +17,7 @@ export const createProduct = (req: Request, res: Response) => {
   }).catch((err) => {
     if (err.code === 11000) {
       res.status(409).send({
-        message: err.errmsg,
+        message: 'Товар с таким заголовком уже существует',
       });
     } else {
       res.status(400).send({
