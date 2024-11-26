@@ -5,7 +5,7 @@ import { getAllProducts, createProduct } from '../controllers/product';
 const router = express.Router();
 
 router.use(express.json());
-router.use(express.static(path.join(__dirname, '../files')));
+router.use(express.static(path.join(__dirname, '../public')));
 router.get('/product', getAllProducts);
 router.post('/product', createProduct);
 
