@@ -1,16 +1,7 @@
 import { Request, Response } from 'express';
-import { Joi } from 'celebrate';
 import mongoose from 'mongoose';
+import { fakerEN } from '@faker-js/faker';
 import Product from '../models/product';
-
-export const orderSchema = Joi.object().keys({
-  email: Joi.string().email().required(),
-  phone: Joi.string().required(),
-  address: Joi.string().required(),
-  payment: Joi.string().valid('card', 'online'),
-  total: Joi.number(),
-  items: Joi.array().not().empty(),
-});
 
 export const createOrder = (req: Request, res: Response) => {
   const orderRequest = req.body;
@@ -27,22 +18,23 @@ export const createOrder = (req: Request, res: Response) => {
     let total = 0;
     itemsSet.forEach((item) => {
       if (!itemsDicrionary.has(item)) {
-        throw new Error('Товара не существует');
+        throw new Error(`Товар с id ${item} не найден`);
       } else {
         const doc = itemsDicrionary.get(item);
         if (doc) {
           total += doc;
         } else {
-          throw new Error('Товар не продаётся');
+          throw new Error(`Товар с id ${item} не продаётся`);
         }
       }
     });
     if (total === orderRequest.total) {
       res.status(200).send({
-        message: 'Заказ создан',
+        message: total,
+        id: fakerEN.string.uuid(),
       });
     } else {
-      throw new Error('Неправильная сумма заказа');
+      throw new Error('Неверная сумма заказа');
     }
   }).catch((err) => {
     res.status(400).send({
