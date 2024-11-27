@@ -1,12 +1,13 @@
-import { Request, Response } from 'express';
-import mongoose from 'mongoose';
+import { Request, Response, NextFunction } from 'express';
+import { Error, Types } from 'mongoose';
 import { fakerEN } from '@faker-js/faker';
 import Product from '../models/product';
+import BadRequestError from '../errors/bad-request-error';
 
-export const createOrder = (req: Request, res: Response) => {
+export const createOrder = (req: Request, res: Response, next: NextFunction) => {
   const orderRequest = req.body;
   const itemsSet = [...new Set(orderRequest.items)];
-  const objectIds = orderRequest.items.map((item: string) => new mongoose.Types.ObjectId(item));
+  const objectIds = orderRequest.items.map((item: string) => new Types.ObjectId(item));
 
   Product.find({
     _id: { $in: objectIds },
@@ -18,13 +19,13 @@ export const createOrder = (req: Request, res: Response) => {
     let total = 0;
     itemsSet.forEach((item) => {
       if (!itemsDicrionary.has(item)) {
-        throw new Error(`Товар с id ${item} не найден`);
+        throw new BadRequestError(`Товар с id ${item} не найден`);
       } else {
         const doc = itemsDicrionary.get(item);
         if (doc) {
           total += doc;
         } else {
-          throw new Error(`Товар с id ${item} не продаётся`);
+          throw new BadRequestError(`Товар с id ${item} не продаётся`);
         }
       }
     });
@@ -34,11 +35,13 @@ export const createOrder = (req: Request, res: Response) => {
         id: fakerEN.string.uuid(),
       });
     } else {
-      throw new Error('Неверная сумма заказа');
+      throw new BadRequestError('Неверная сумма заказа');
     }
   }).catch((err) => {
-    res.status(400).send({
-      message: err.message,
-    });
+    if (err instanceof Error.ValidationError) {
+      next(new BadRequestError(err.message));
+    } else {
+      next(err);
+    }
   });
 };

@@ -1,5 +1,8 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
+import { Error as MongooseError } from 'mongoose';
 import Product from '../models/product';
+import ConflictError from '../errors/conflict-error';
+import BadRequestError from '../errors/bad-request-error';
 
 export const getAllProducts = (_: Request, res: Response) => {
   Product.find({}).then((data) => {
@@ -10,28 +13,16 @@ export const getAllProducts = (_: Request, res: Response) => {
   });
 };
 
-export const createProduct = (req: Request, res: Response) => {
+export const createProduct = (req: Request, res: Response, next: NextFunction) => {
   const product = req.body;
   Product.create(product).then((data) => {
     res.status(200).send(data);
   }).catch((err) => {
-    if (err.code === 11000) {
-      res.status(409).send({
-        message: 'Товар с таким заголовком уже существует',
-      });
-    } else {
-      res.status(400).send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: 'Validation Failed',
-        validation: {
-          body: {
-            source: 'body',
-            keys: Object.keys(err.errors),
-            message: `${Object.keys(err.errors).join(' ')} is required`,
-          },
-        },
-      });
+    if (err instanceof MongooseError.ValidationError) {
+      next(new BadRequestError(err.message));
+    }
+    if (err instanceof Error && err.message.includes('E11000')) {
+      next(new ConflictError(err.message));
     }
   });
 };
