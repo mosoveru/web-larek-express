@@ -3,7 +3,7 @@ import NotFoundError from '../errors/not-found-error';
 import BadRequestError from '../errors/bad-request-error';
 import ConflictError from '../errors/conflict-error';
 
-export const errorHandler = (err: unknown, _: Request, res: Response, __: NextFunction) => {
+const handleErrors = (err: unknown, _: Request, res: Response, __: NextFunction) => {
   if (err instanceof NotFoundError) {
     res.status(err.statusCode).send({
       message: err.message,
@@ -25,15 +25,11 @@ export const errorHandler = (err: unknown, _: Request, res: Response, __: NextFu
     return;
   }
 
-  if (err instanceof NotFoundError) {
-    res.status(err.statusCode).send({
-      message: err.message,
-    });
-  }
-
   if (err instanceof Error) {
     res.status(500).send({
       message: err.message,
     });
   }
 };
+
+export default handleErrors;

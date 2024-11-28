@@ -5,8 +5,8 @@ import cors from 'cors';
 import path from 'path';
 import productRouter from './routes/product';
 import orderRouter from './routes/order';
-import { errorHandler } from './middlewares/error-handler';
-import { unknownRouteHandler } from './middlewares/unknown-route';
+import defaultRouter from './routes/index';
+import handleErrors from './middlewares/error-handler';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,8 +18,8 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(productRouter);
 app.use(orderRouter);
-app.use(unknownRouteHandler);
-app.use(errorHandler);
+app.use(defaultRouter);
+app.use(handleErrors);
 
 app.listen(PORT, () => {
   console.log('Server running on port', PORT);
