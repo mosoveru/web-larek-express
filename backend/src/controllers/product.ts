@@ -16,7 +16,7 @@ export const getAllProducts = (_: Request, res: Response) => {
 export const createProduct = (req: Request, res: Response, next: NextFunction) => {
   const product = req.body;
   Product.create(product).then((data) => {
-    res.status(200).send(data);
+    res.status(201).send(data);
   }).catch((err) => {
     if (err instanceof MongooseError.ValidationError) {
       next(new BadRequestError(err.message));

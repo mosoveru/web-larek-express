@@ -4,7 +4,7 @@ import { fakerEN } from '@faker-js/faker';
 import Product from '../models/product';
 import BadRequestError from '../errors/bad-request-error';
 
-export const createOrder = (req: Request, res: Response, next: NextFunction) => {
+const createOrder = (req: Request, res: Response, next: NextFunction) => {
   const orderRequest = req.body;
   const itemsSet = [...new Set(orderRequest.items)];
   const objectIds = orderRequest.items.map((item: string) => new Types.ObjectId(item));
@@ -31,7 +31,7 @@ export const createOrder = (req: Request, res: Response, next: NextFunction) => 
     });
     if (total === orderRequest.total) {
       res.status(200).send({
-        message: total,
+        total,
         id: fakerEN.string.uuid(),
       });
     } else {
@@ -45,3 +45,5 @@ export const createOrder = (req: Request, res: Response, next: NextFunction) => 
     }
   });
 };
+
+export default createOrder;

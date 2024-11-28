@@ -4,7 +4,7 @@ const orderSchema = Joi.object().keys({
   email: Joi.string().email().required(),
   phone: Joi.string().required(),
   address: Joi.string().required(),
-  payment: Joi.string().valid('card', 'online'),
+  payment: Joi.string().required().valid('card', 'online'),
   total: Joi.number(),
   items: Joi.array().not().empty(),
 });

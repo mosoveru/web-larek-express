@@ -1,6 +1,6 @@
 import { errors } from 'celebrate';
 import express from 'express';
-import { createOrder } from '../controllers/order';
+import createOrder from '../controllers/order';
 import { validateOrderBody } from '../middlewares/validations';
 
 const router = express.Router();
