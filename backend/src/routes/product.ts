@@ -5,8 +5,8 @@ import { validateProductCreateBody } from '../middlewares/validations';
 
 const router = express.Router();
 
-router.use(express.json());
 router.get('/product', getAllProducts);
+router.use(express.json());
 router.post('/product', validateProductCreateBody, errors(), createProduct);
 
 export default router;
