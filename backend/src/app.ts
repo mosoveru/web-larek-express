@@ -22,6 +22,4 @@ app.use(defaultRouter);
 app.use(errorLogger);
 app.use(handleErrors);
 
-app.listen(PORT, () => {
-  console.log('Server running on port', PORT);
-});
+app.listen(PORT);
