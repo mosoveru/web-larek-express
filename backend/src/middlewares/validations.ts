@@ -20,10 +20,20 @@ const productSchema = Joi.object({
   price: Joi.number().allow(null),
 });
 
+const userSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required().min(6).max(30),
+  name: Joi.string(),
+});
+
 export const validateOrderBody = celebrate({
   [Segments.BODY]: orderSchema,
 });
 
 export const validateProductCreateBody = celebrate({
   [Segments.BODY]: productSchema,
+});
+
+export const validateUserBody = celebrate({
+  [Segments.BODY]: userSchema,
 });

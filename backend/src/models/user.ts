@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
+import UnauthorizedError from '../errors/unauthorized-error';
 
-type TToken = {
+type Token = {
   token: string;
 }
 
@@ -8,10 +10,16 @@ interface IUser {
   name: string;
   email: string;
   password: string;
-  tokens: TToken[];
+  tokens: Token[];
 }
 
-const userSchema = new mongoose.Schema<IUser>({
+type UserDocument = mongoose.Document<unknown, any, IUser> & IUser & { _id: mongoose.Types.ObjectId };
+
+interface UserModel extends mongoose.Model<IUser> {
+  findUserByCredentials: (email: string, password: string) => Promise<UserDocument>;
+}
+
+const userSchema = new mongoose.Schema<IUser, UserModel>({
   name: {
     type: String,
     minlength: 2,
@@ -37,6 +45,22 @@ const userSchema = new mongoose.Schema<IUser>({
   },
 });
 
-const userModel = mongoose.model<IUser>('User', userSchema);
+userSchema.static('findUserByCredentials', function mongooseMethod(email: string, password: string) {
+  return this.findOne({ email }).then((user) => {
+    if (!user) {
+      return Promise.reject(new UnauthorizedError('Неправильная почта или пароль'));
+    }
+
+    return bcrypt.compare(password, user.password).then((matched) => {
+      if (!matched) {
+        return Promise.reject(new UnauthorizedError('Неправильная почта или пароль'));
+      }
+
+      return user;
+    });
+  });
+});
+
+const userModel = mongoose.model<IUser, UserModel>('User', userSchema);
 
 export default userModel;

@@ -6,5 +6,6 @@ export const UPLOAD_PATH = process.env.UPLOAD_PATH || 'images';
 export const UPLOAD_PATH_TEMP = process.env.UPLOAD_PATH_TEMP || 'temp';
 export const ORIGIN_ALLOW = process.env.ORIGIN_ALLOW || 'http://localhost:5173';
 export const AUTH_REFRESH_TOKEN_EXPIRY = process.env.AUTH_REFRESH_TOKEN_EXPIRY || '7d';
-export const AUTH_ACCESS_TOKEN_EXPIRY = process.env.AUTH_ACCESS_TOKEN_EXPIRY || '1m';
+export const AUTH_ACCESS_TOKEN_EXPIRY = process.env.AUTH_ACCESS_TOKEN_EXPIRY || '10m';
 export const SECRET_KEY = process.env.SECRET_KEY || 'some-secret-key';
+export const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY || 'refresh-secret-key';
