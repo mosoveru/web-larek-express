@@ -146,12 +146,11 @@ export const logout = (req: AuthenticatedRequest, res: Response, next: NextFunct
       return Promise.reject(new NotFoundError('Пользователь по заданному id отсутствует в базе'));
     }
 
-    res.cookie('refreshToken', refreshToken, {
+    res.clearCookie('refreshToken', {
       httpOnly: true,
+      path: '/',
       sameSite: 'lax',
       secure: false,
-      maxAge: -1,
-      path: '/',
     });
 
     return res.status(200).send({
@@ -170,9 +169,12 @@ export const refreshAccessToken = (req: AuthenticatedRequest, res: Response, nex
   const accessToken = jwt.sign({ _id: req.body.user._id }, SECRET_KEY, { expiresIn: AUTH_ACCESS_TOKEN_EXPIRY });
   const refreshToken = jwt.sign({ _id: req.body.user._id }, REFRESH_SECRET_KEY, { expiresIn: AUTH_REFRESH_TOKEN_EXPIRY });
 
-  User.findByIdAndUpdate({ _id: req.body.user._id }, {
-    $push: {
-      tokens: {
+  User.findOneAndUpdate({
+    _id: req.body.user._id,
+    'tokens.token': req.body.token,
+  }, {
+    $set: {
+      'tokens.$': {
         token: refreshToken,
       },
     },
@@ -187,7 +189,7 @@ export const refreshAccessToken = (req: AuthenticatedRequest, res: Response, nex
       httpOnly: true,
       sameSite: 'lax',
       secure: false,
-      maxAge: -1,
+      maxAge: ms(AUTH_REFRESH_TOKEN_EXPIRY),
       path: '/',
     });
 

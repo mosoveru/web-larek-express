@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema<IUser, UserModel>({
     type: String,
     minlength: 6,
     required: true,
+    select: false,
   },
   tokens: {
     type: [{
@@ -42,11 +43,12 @@ const userSchema = new mongoose.Schema<IUser, UserModel>({
         type: String,
       },
     }],
+    select: false,
   },
 });
 
 userSchema.static('findUserByCredentials', function mongooseMethod(email: string, password: string) {
-  return this.findOne({ email }).then((user) => {
+  return this.findOne({ email }).select('+password').then((user) => {
     if (!user) {
       return Promise.reject(new UnauthorizedError('Неправильная почта или пароль'));
     }
