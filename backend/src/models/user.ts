@@ -1,23 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import UnauthorizedError from '../errors/unauthorized-error';
-
-type Token = {
-  token: string;
-}
-
-interface IUser {
-  name: string;
-  email: string;
-  password: string;
-  tokens: Token[];
-}
-
-type UserDocument = mongoose.Document<unknown, any, IUser> & IUser & { _id: mongoose.Types.ObjectId };
-
-interface UserModel extends mongoose.Model<IUser> {
-  findUserByCredentials: (email: string, password: string) => Promise<UserDocument>;
-}
+import { IUser, UserModel } from '../types';
 
 const userSchema = new mongoose.Schema<IUser, UserModel>({
   name: {

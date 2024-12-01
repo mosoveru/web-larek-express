@@ -1,10 +1,12 @@
-import { NextFunction, Response, Request } from 'express';
+import {
+  NextFunction, Response, Request, CookieOptions,
+} from 'express';
 import jwt from 'jsonwebtoken';
 import ms from 'ms';
 import bcrypt from 'bcrypt';
-import { Error as MongooseError } from 'mongoose';
+import mongoose, { Error as MongooseError } from 'mongoose';
 import User from '../models/user';
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest, UserDocument } from '../types';
 import NotFoundError from '../errors/not-found-error';
 import {
   REFRESH_SECRET_KEY, SECRET_KEY, AUTH_REFRESH_TOKEN_EXPIRY, AUTH_ACCESS_TOKEN_EXPIRY,
@@ -12,33 +14,120 @@ import {
 import ConflictError from '../errors/conflict-error';
 import BadRequestError from '../errors/bad-request-error';
 
-export const getCurrentUser = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  User.findOne({
-    _id: req.body.user._id,
-  }).then((user) => {
-    if (!user) {
-      return Promise.reject(new NotFoundError('Пользователь по заданному id отсутствует в базе'));
-    }
+const checkUserExisting = (user: UserDocument | null) => {
+  if (!user) {
+    throw new NotFoundError('Пользователь по заданному id отсутствует в базе');
+  }
+};
 
-    return res.status(200).send({
-      user: {
-        name: user.name,
-        email: user.email,
-        id: user._id.toString(),
-      },
+const generateAuthResponse = (user: UserDocument | null, accessToken: string, refreshToken: string) => {
+  checkUserExisting(user);
+
+  return {
+    cookies: {
+      name: 'refreshToken',
+      value: refreshToken,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false,
+        maxAge: ms(AUTH_REFRESH_TOKEN_EXPIRY),
+        path: '/',
+      } as CookieOptions,
+    },
+    body: {
       success: true,
-    });
-  }).catch((err) => {
-    next(err);
-  });
+      user: {
+        name: user!.name,
+        email: user!.email,
+        id: user!._id.toString(),
+      },
+      accessToken,
+    },
+  };
+};
+
+const generateUserResponse = (user: UserDocument | null) => {
+  checkUserExisting(user);
+
+  return {
+    body: {
+      success: true,
+      user: {
+        name: user!.name,
+        email: user!.email,
+        id: user!._id.toString(),
+      },
+    },
+  };
+};
+
+const generateLogoutResponse = (user: UserDocument | null) => {
+  checkUserExisting(user);
+
+  return {
+    cookie: {
+      name: 'refreshToken',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false,
+        path: '/',
+      } as CookieOptions,
+    },
+    body: {
+      success: true,
+    },
+  };
+};
+
+const signNewTokens = (userId: mongoose.Types.ObjectId) => {
+  const accessToken = jwt.sign({ _id: userId }, SECRET_KEY, { expiresIn: AUTH_ACCESS_TOKEN_EXPIRY });
+  const refreshToken = jwt.sign({ _id: userId }, REFRESH_SECRET_KEY, { expiresIn: AUTH_REFRESH_TOKEN_EXPIRY });
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+};
+
+type ErrorsType = 'cast' | 'duplicate';
+
+const handleAuthErrors = (next: NextFunction, type?: ErrorsType) => {
+  switch (type) {
+    case 'cast': return (err: any) => {
+      if (err instanceof MongooseError.CastError) {
+        next(new BadRequestError('Невалидный id'));
+      } else {
+        next(err);
+      }
+    };
+    case 'duplicate': return (err: any) => {
+      if (err instanceof Error && err.message.includes('E11000')) {
+        next(new ConflictError(err.message));
+      } else {
+        next(err);
+      }
+    };
+    default: {
+      return (err: any) => next(err);
+    }
+  }
+};
+
+export const getCurrentUser = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  User.findById(req.body.user._id).then((user) => {
+    const { body } = generateUserResponse(user);
+
+    return res.status(200).send(body);
+  }).catch(handleAuthErrors(next));
 };
 
 export const login = (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
 
   User.findUserByCredentials(email, password).then((foundUser) => {
-    const accessToken = jwt.sign({ _id: foundUser._id }, SECRET_KEY, { expiresIn: AUTH_ACCESS_TOKEN_EXPIRY });
-    const refreshToken = jwt.sign({ _id: foundUser._id }, REFRESH_SECRET_KEY, { expiresIn: AUTH_REFRESH_TOKEN_EXPIRY });
+    const { accessToken, refreshToken } = signNewTokens(foundUser._id);
 
     User.findByIdAndUpdate(foundUser._id, {
       $push: {
@@ -49,32 +138,12 @@ export const login = (req: Request, res: Response, next: NextFunction) => {
     }, {
       new: true,
     }).then((user) => {
-      if (!user) {
-        return Promise.reject(new NotFoundError('Пользователь не найден'));
-      }
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-        maxAge: ms(AUTH_REFRESH_TOKEN_EXPIRY),
-        path: '/',
-      });
+      const { body, cookies } = generateAuthResponse(user, accessToken, refreshToken);
 
-      return res.status(200).send({
-        success: true,
-        user: {
-          name: user.name,
-          email: user.email,
-          id: user._id.toString(),
-        },
-        accessToken,
-      });
-    }).catch((err) => {
-      next(err);
-    });
-  }).catch((err) => {
-    next(err);
-  });
+      res.cookie(cookies.name, cookies.value, cookies.options);
+      res.status(200).send(body);
+    }).catch(handleAuthErrors(next));
+  }).catch(handleAuthErrors(next));
 };
 
 export const register = (req: Request, res: Response, next: NextFunction) => {
@@ -86,8 +155,7 @@ export const register = (req: Request, res: Response, next: NextFunction) => {
       password: hash,
       name,
     }).then((createdUser) => {
-      const accessToken = jwt.sign({ _id: createdUser._id }, SECRET_KEY, { expiresIn: AUTH_ACCESS_TOKEN_EXPIRY });
-      const refreshToken = jwt.sign({ _id: createdUser._id }, REFRESH_SECRET_KEY, { expiresIn: AUTH_REFRESH_TOKEN_EXPIRY });
+      const { accessToken, refreshToken } = signNewTokens(createdUser._id);
 
       User.findByIdAndUpdate(createdUser._id, {
         $push: {
@@ -98,36 +166,12 @@ export const register = (req: Request, res: Response, next: NextFunction) => {
       }, {
         new: true,
       }).then((user) => {
-        if (!user) {
-          return Promise.reject(new NotFoundError('Пользователь не найден'));
-        }
-        res.cookie('refreshToken', refreshToken, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: false,
-          maxAge: ms(AUTH_REFRESH_TOKEN_EXPIRY),
-          path: '/',
-        });
+        const { body, cookies } = generateAuthResponse(user, accessToken, refreshToken);
 
-        return res.status(200).send({
-          success: true,
-          user: {
-            name: user.name,
-            email: user.email,
-            id: user._id.toString(),
-          },
-          accessToken,
-        });
-      }).catch((err) => {
-        next(err);
-      });
-    }).catch((err) => {
-      if (err instanceof Error && err.message.includes('E11000')) {
-        next(new ConflictError(err.message));
-      } else {
-        next(err);
-      }
-    });
+        res.cookie(cookies.name, cookies.value, cookies.options);
+        res.status(200).send(body);
+      }).catch(handleAuthErrors(next));
+    }).catch(handleAuthErrors(next, 'duplicate'));
   });
 };
 
@@ -142,32 +186,16 @@ export const logout = (req: AuthenticatedRequest, res: Response, next: NextFunct
   }, {
     new: true,
   }).then((user) => {
-    if (!user) {
-      return Promise.reject(new NotFoundError('Пользователь по заданному id отсутствует в базе'));
-    }
+    const { body, cookie } = generateLogoutResponse(user);
 
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      path: '/',
-      sameSite: 'lax',
-      secure: false,
-    });
+    res.clearCookie(cookie.name, cookie.options);
 
-    return res.status(200).send({
-      success: true,
-    });
-  }).catch((err) => {
-    if (err instanceof MongooseError.CastError) {
-      next(new BadRequestError('Невалидный id'));
-    } else {
-      next(err);
-    }
-  });
+    return res.status(200).send(body);
+  }).catch(handleAuthErrors(next, 'cast'));
 };
 
 export const refreshAccessToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const accessToken = jwt.sign({ _id: req.body.user._id }, SECRET_KEY, { expiresIn: AUTH_ACCESS_TOKEN_EXPIRY });
-  const refreshToken = jwt.sign({ _id: req.body.user._id }, REFRESH_SECRET_KEY, { expiresIn: AUTH_REFRESH_TOKEN_EXPIRY });
+  const { accessToken, refreshToken } = signNewTokens(req.body.user._id);
 
   User.findOneAndUpdate({
     _id: req.body.user._id,
@@ -181,32 +209,9 @@ export const refreshAccessToken = (req: AuthenticatedRequest, res: Response, nex
   }, {
     new: true,
   }).then((user) => {
-    if (!user) {
-      return Promise.reject(new NotFoundError('Пользователь по заданному id отсутствует в базе'));
-    }
+    const { body, cookies } = generateAuthResponse(user, accessToken, refreshToken);
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
-      maxAge: ms(AUTH_REFRESH_TOKEN_EXPIRY),
-      path: '/',
-    });
-
-    return res.status(200).send({
-      success: true,
-      user: {
-        name: user.name,
-        email: user.email,
-        id: user._id.toString(),
-      },
-      accessToken,
-    });
-  }).catch((err) => {
-    if (err instanceof MongooseError.CastError) {
-      next(new BadRequestError('Невалидный id'));
-    } else {
-      next(err);
-    }
-  });
+    res.cookie(cookies.name, cookies.value, cookies.options);
+    res.status(200).send(body);
+  }).catch(handleAuthErrors(next, 'cast'));
 };
