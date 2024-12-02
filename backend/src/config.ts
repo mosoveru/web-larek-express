@@ -9,3 +9,5 @@ export const AUTH_REFRESH_TOKEN_EXPIRY = process.env.AUTH_REFRESH_TOKEN_EXPIRY |
 export const AUTH_ACCESS_TOKEN_EXPIRY = process.env.AUTH_ACCESS_TOKEN_EXPIRY || '10m';
 export const SECRET_KEY = process.env.SECRET_KEY || 'some-secret-key';
 export const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY || 'refresh-secret-key';
+export const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '* * * * *';
+export const MAXIMUM_FILE_SIZE = Number(process.env.MAXIMUM_FILE_SIZE) || 102400;

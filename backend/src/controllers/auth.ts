@@ -93,7 +93,7 @@ const signNewTokens = (userId: mongoose.Types.ObjectId) => {
 
 type ErrorsType = 'cast' | 'duplicate';
 
-const handleAuthErrors = (next: NextFunction, type?: ErrorsType) => {
+const returnAuthErrorHandler = (next: NextFunction, type?: ErrorsType) => {
   switch (type) {
     case 'cast': return (err: any) => {
       if (err instanceof MongooseError.CastError) {
@@ -120,7 +120,7 @@ export const getCurrentUser = (req: AuthenticatedRequest, res: Response, next: N
     const { body } = generateUserResponse(user);
 
     return res.status(200).send(body);
-  }).catch(handleAuthErrors(next));
+  }).catch(returnAuthErrorHandler(next));
 };
 
 export const login = (req: Request, res: Response, next: NextFunction) => {
@@ -142,8 +142,8 @@ export const login = (req: Request, res: Response, next: NextFunction) => {
 
       res.cookie(cookies.name, cookies.value, cookies.options);
       res.status(200).send(body);
-    }).catch(handleAuthErrors(next));
-  }).catch(handleAuthErrors(next));
+    }).catch(returnAuthErrorHandler(next));
+  }).catch(returnAuthErrorHandler(next));
 };
 
 export const register = (req: Request, res: Response, next: NextFunction) => {
@@ -170,8 +170,8 @@ export const register = (req: Request, res: Response, next: NextFunction) => {
 
         res.cookie(cookies.name, cookies.value, cookies.options);
         res.status(200).send(body);
-      }).catch(handleAuthErrors(next));
-    }).catch(handleAuthErrors(next, 'duplicate'));
+      }).catch(returnAuthErrorHandler(next));
+    }).catch(returnAuthErrorHandler(next, 'duplicate'));
   });
 };
 
@@ -191,7 +191,7 @@ export const logout = (req: AuthenticatedRequest, res: Response, next: NextFunct
     res.clearCookie(cookie.name, cookie.options);
 
     return res.status(200).send(body);
-  }).catch(handleAuthErrors(next, 'cast'));
+  }).catch(returnAuthErrorHandler(next, 'cast'));
 };
 
 export const refreshAccessToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -213,5 +213,5 @@ export const refreshAccessToken = (req: AuthenticatedRequest, res: Response, nex
 
     res.cookie(cookies.name, cookies.value, cookies.options);
     res.status(200).send(body);
-  }).catch(handleAuthErrors(next, 'cast'));
+  }).catch(returnAuthErrorHandler(next, 'cast'));
 };
