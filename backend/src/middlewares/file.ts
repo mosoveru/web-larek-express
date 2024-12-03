@@ -10,7 +10,7 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype)) {
       callback(null, true);
     } else {
-      callback(new BadRequestError('File extension does not match or file size more than 100Kb'));
+      callback(new BadRequestError('File extension does not match'));
     }
   },
   storage: multer.diskStorage({

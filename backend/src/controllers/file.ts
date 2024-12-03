@@ -12,13 +12,8 @@ const generateFileName = (file: Express.Multer.File) => {
   return path.join(`/${UPLOAD_PATH}/`, uniqueName);
 };
 
-export const uploadFile = (req: Request, res: Response, next: NextFunction) => {
+export const uploadFile = (req: Request, res: Response) => {
   const file = req.file!;
-
-  if (file.size > MAXIMUM_FILE_SIZE) {
-    next(new BadRequestError('File size is too large'));
-    return;
-  }
 
   const fileName = generateFileName(file);
 
@@ -30,15 +25,15 @@ export const uploadFile = (req: Request, res: Response, next: NextFunction) => {
 
 export const clearTempFolder = () => {
   try {
-    fs.readdir(UPLOAD_PATH_TEMP, (err, files) => {
-      if (err) {
-        throw new Error(err.message);
+    fs.readdir(UPLOAD_PATH_TEMP, (readdirErr, files) => {
+      if (readdirErr) {
+        throw new Error(readdirErr.message);
       } else {
         files.forEach((file) => {
           const filePath = path.join(UPLOAD_PATH_TEMP, file);
-          fs.unlink(filePath, (err) => {
-            if (err) {
-              throw new Error(err.message);
+          fs.unlink(filePath, (unlinkErr) => {
+            if (unlinkErr) {
+              throw new Error(unlinkErr.message);
             }
           });
         });
@@ -50,5 +45,14 @@ export const clearTempFolder = () => {
     } else {
       defaultLogger.error('Unknown Error Occurred While Cleaning Temp Files');
     }
+  }
+};
+
+export const checkFileSize = (req: Request, _: Response, next: NextFunction) => {
+  const length = req.headers['content-length'];
+  if (Number(length) > MAXIMUM_FILE_SIZE) {
+    next(new BadRequestError('File size is too large'));
+  } else {
+    next();
   }
 };

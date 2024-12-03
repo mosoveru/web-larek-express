@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Error, Types } from 'mongoose';
+import { Error as MongooseError, Types } from 'mongoose';
 import { fakerEN } from '@faker-js/faker';
 import Product from '../models/product';
 import BadRequestError from '../errors/bad-request-error';
@@ -38,7 +38,7 @@ const createOrder = (req: Request, res: Response, next: NextFunction) => {
       throw new BadRequestError('Неверная сумма заказа');
     }
   }).catch((err) => {
-    if (err instanceof Error.ValidationError) {
+    if (err instanceof MongooseError.ValidationError) {
       next(new BadRequestError(err.message));
     } else {
       next(err);
