@@ -12,16 +12,16 @@ const createOrder = (req: Request, res: Response, next: NextFunction) => {
   Product.find({
     _id: { $in: objectIds },
   }).then((data) => {
-    const itemsDicrionary = new Map();
+    const itemsDictionary = new Map();
     data.forEach((item) => {
-      itemsDicrionary.set(item._id.toString(), item.price);
+      itemsDictionary.set(item._id.toString(), item.price);
     });
     let total = 0;
     itemsSet.forEach((item) => {
-      if (!itemsDicrionary.has(item)) {
+      if (!itemsDictionary.has(item)) {
         throw new BadRequestError(`Товар с id ${item} не найден`);
       } else {
-        const doc = itemsDicrionary.get(item);
+        const doc = itemsDictionary.get(item);
         if (doc) {
           total += doc;
         } else {

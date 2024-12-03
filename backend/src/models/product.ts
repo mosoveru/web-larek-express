@@ -36,8 +36,8 @@ const productSchema = new mongoose.Schema<IProduct>({
   },
 });
 
-productSchema.post('deleteOne', (doc) => {
-  const { fileName } = doc;
+productSchema.post('findOneAndDelete', (doc) => {
+  const { fileName } = doc.image;
   const DELETE_FROM = path.join(__dirname, '../public', fileName);
 
   fs.rm(DELETE_FROM, {
