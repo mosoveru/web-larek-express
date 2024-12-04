@@ -14,7 +14,7 @@ import defaultRouter from './routes/index';
 import authRouter from './routes/auth';
 import handleErrors from './middlewares/error-handler';
 import { requestLogger, errorLogger } from './middlewares/logger';
-import { clearTempFolder } from './controllers/file';
+import clearTempFolder from './helpers/temp-cleaner';
 
 const app = express();
 

@@ -3,7 +3,8 @@ import { errors } from 'celebrate';
 import {
   getAllProducts, createProduct, updateProduct, deleteProduct,
 } from '../controllers/product';
-import { validateAccessToken, validateProductCreateBody } from '../middlewares/validations';
+import { validateProductCreateBody } from '../middlewares/validations';
+import { validateAccessToken } from '../middlewares/auth';
 
 const router = express.Router();
 

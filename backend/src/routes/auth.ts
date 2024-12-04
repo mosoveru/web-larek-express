@@ -3,7 +3,8 @@ import { errors } from 'celebrate';
 import {
   getCurrentUser, login, logout, refreshAccessToken, register,
 } from '../controllers/auth';
-import { validateAccessToken, validateRefreshToken, validateUserBody } from '../middlewares/validations';
+import { validateUserBody } from '../middlewares/validations';
+import { validateAccessToken, validateRefreshToken } from '../middlewares/auth';
 
 const router = express.Router();
 

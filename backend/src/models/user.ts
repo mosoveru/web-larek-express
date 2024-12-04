@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
+import { isEmail } from 'validator';
 import UnauthorizedError from '../errors/unauthorized-error';
 import { IUser, UserModel } from '../types';
 
@@ -14,6 +15,9 @@ const userSchema = new mongoose.Schema<IUser, UserModel>({
     type: String,
     required: true,
     unique: true,
+    validate: {
+      validator: (email: string) => isEmail(email),
+    },
   },
   password: {
     type: String,

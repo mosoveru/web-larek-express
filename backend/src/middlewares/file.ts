@@ -1,12 +1,12 @@
 import multer from 'multer';
-import express from 'express';
-import { UPLOAD_PATH_TEMP } from '../config';
+import express, { NextFunction, Request, Response } from 'express';
+import { MAXIMUM_FILE_SIZE, UPLOAD_PATH_TEMP } from '../config';
 import BadRequestError from '../errors/bad-request-error';
 /* global Express */
 
-const upload = multer({
+export const fileMiddleware = multer({
   fileFilter(_: express.Request, file: Express.Multer.File, callback: multer.FileFilterCallback) {
-    const allowedTypes = ['image/png', 'image/svg+xml'];
+    const allowedTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/gif', 'image/svg+xml'];
     if (allowedTypes.includes(file.mimetype)) {
       callback(null, true);
     } else {
@@ -23,4 +23,11 @@ const upload = multer({
   }),
 });
 
-export default upload;
+export const checkFileSize = (req: Request, _: Response, next: NextFunction) => {
+  const length = req.headers['content-length'];
+  if (Number(length) > MAXIMUM_FILE_SIZE) {
+    next(new BadRequestError('File size is too large'));
+  } else {
+    next();
+  }
+};

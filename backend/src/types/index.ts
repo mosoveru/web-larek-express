@@ -36,3 +36,5 @@ export interface IProduct {
   description: string;
   price: number | null;
 }
+
+export type ProductDocument = mongoose.Document<unknown, {}, IProduct> & IProduct & { _id: mongoose.Types.ObjectId }
